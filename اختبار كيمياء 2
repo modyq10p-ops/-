@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>اختبار الكيمياء — 50 سؤال</title>
+<style>
+  body { font-family: "Tahoma", Arial, sans-serif; background:#f3f6fb; color:#111; margin:0; padding:20px; }
+  .container { max-width:900px; margin:0 auto; background:#fff; padding:18px; border-radius:10px; box-shadow:0 8px 24px rgba(15,23,42,0.08); }
+  h1 { text-align:center; margin:6px 0 18px; }
+  #globalTimer { text-align:center; font-weight:700; color:#b91c1c; margin-bottom:12px; }
+  .progress { text-align:center; margin-bottom:12px; color:#555; }
+  .questionBox { padding:14px; border:1px solid #e6eef8; border-radius:8px; background:#fafcff; }
+  .qtext { font-weight:700; margin-bottom:8px; }
+  .options label { display:block; padding:8px; border-radius:6px; margin-bottom:6px; cursor:pointer; border:1px solid transparent; }
+  .options input { margin-left:8px; }
+  .options label:hover { background:#eef6ff; }
+  .feedback { margin-top:10px; padding:10px; border-radius:6px; background:#f8fafc; font-weight:600; }
+  .correct { color: #064e3b; }
+  .wrong { color: #7f1d1d; }
+  .controls { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:14px; }
+  button { background:#0369a1; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:700; }
+  button:disabled { opacity:0.5; cursor:not-allowed; }
+  #perQuestionTimer { font-weight:700; color:#0f172a; }
+  #resultBox { text-align:center; margin-top:18px; padding:12px; border-radius:8px; background:#f1f5f9; font-weight:800; }
+  footer { text-align:center; font-size:13px; color:#6b7280; margin-top:12px; }
+  @media (max-width:640px){ .controls { flex-direction:column; align-items:stretch; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 اختبار الكيمياء — 50 سؤال</h1>
+  <div id="globalTimer">الوقت المتبقي الكلي: <span id="globalTime">30:00</span></div>
+  <div class="progress">السؤال <span id="currentIndex">1</span> من <span id="totalQuestions">50</span></div>
+
+  <div class="questionBox">
+    <div class="qtext" id="qText">...جارِ التحميل</div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback" style="display:none;"></div>
+    <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+      <div id="perQuestionTimer">وقت السؤال: <span id="qTime">01:00</span></div>
+      <div style="font-size:13px;color:#4b5563;">(عند انتهاء الدقيقة ينتقل للسؤال التالي تلقائياً)</div>
+    </div>
+    <div class="controls">
+      <button id="prevBtn">السابق</button>
+      <div style="display:flex;gap:10px">
+        <button id="markBtn">علامة / مسح الإجابة</button>
+        <button id="nextBtn">التالي</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultBox" style="display:none;"></div>
+  <footer>عند رغبتك: اضغط "التالي" للانتقال أو انتظر انتهاء الدقيقة للسؤال للانتقال تلقائياً.</footer>
+</div>
+
+<script>
+/* === مصفوفة الأسئلة (50 سؤال) ===
+   كل عنصر: { q: "النص", options: [...4 خيارات...], answer: "النص الصحيح" }
+   — الإجابات مكتوبة بالعربية كما في خياراتك.
+*/
+const questions = [
+  { q:"من هو أول من قال إن المادة تتكون من جسيمات صغيرة سماها ذرات؟", options:["دالتون","طومسون","رذرفورد","ديموقريطس"], answer:"ديموقريطس" },
+  { q:"اكتشف الإلكترون العالم:", options:["دالتون","طومسون","بور","شرودنجر"], answer:"طومسون" },
+  { q:"اكتشف النواة العالم:", options:["بور","ديموقريطس","رذرفورد","دالتون"], answer:"رذرفورد" },
+  { q:"من مكونات الذرة:", options:["إلكترونات فقط","بروتونات ونيوترونات وإلكترونات","بروتونات فقط","نيوترونات فقط"], answer:"بروتونات ونيوترونات وإلكترونات" },
+  { q:"الشحنة الكهربائية للبروتون هي:", options:["سالبة","موجبة","متعادلة","غير معروفة"], answer:"موجبة" },
+  { q:"الشحنة الكهربائية للإلكترون هي:", options:["موجبة","سالبة","متعادلة","صفر"], answer:"سالبة" },
+  { q:"النيوترون يحمل شحنة:", options:["سالبة","موجبة","متعادلة","مزدوجة"], answer:"متعادلة" },
+  { q:"تتركز كتلة الذرة في:", options:["الإلكترونات","النواة","المدار الأخير","مستويات الطاقة"], answer:"النواة" },
+  { q:"الإلكترونات توجد في:", options:["داخل النواة","حول النواة","داخل البروتون","في الفراغ"], answer:"حول النواة" },
+  { q:"العدد الذري للعنصر يساوي عدد:", options:["النيوترونات","البروتونات","الكتلة","الإلكترونات + النيوترونات"], answer:"البروتونات" },
+
+  { q:"العدد الكتلي يساوي:", options:["البروتونات فقط","النيوترونات فقط","البروتونات + النيوترونات","الإلكترونات + النيوترونات"], answer:"البروتونات + النيوترونات" },
+  { q:"العنصر الذي له نفس العدد الذري يختلف في عدد النيوترونات يسمى:", options:["نظير","أيون","مركب","جزيء"], answer:"نظير" },
+  { q:"ذرة الهيدروجين التي لا تحتوي على نيوترونات هي:", options:["البروتيوم","الديوتيريوم","التريتيوم","النظير الثاني"], answer:"البروتيوم" },
+  { q:"النموذج الذري الذي يشبه النظام الشمسي هو نموذج:", options:["بور","رذرفورد","طومسون","دالتون"], answer:"رذرفورد" },
+  { q:"نموذج طومسون للذرة يسمى:", options:["النموذج الكروي","نموذج الفطيرة","نموذج كرة البلياردو","نموذج السحابة الإلكترونية"], answer:"نموذج الفطيرة" },
+  { q:"نموذج بور وضّح أن الإلكترونات:", options:["ساكنة في أماكنها","تدور في مدارات محددة الطاقة","توجد في النواة","تختفي فجأة"], answer:"تدور في مدارات محددة الطاقة" },
+  { q:"رمز العنصر يعبّر عن:", options:["عدد الإلكترونات فقط","اسم العنصر وعدده الذري","نوع العنصر فقط","الكتلة فقط"], answer:"اسم العنصر وعدده الذري" },
+  { q:"ما الذي يحدد هوية العنصر؟", options:["عدد النيوترونات","عدد البروتونات","عدد الإلكترونات","عدد الكتلة"], answer:"عدد البروتونات" },
+  { q:"الإلكترونات في المستوى الأخير تسمى:", options:["الداخلية","التكافؤ","الحرة","السالبة"], answer:"التكافؤ" },
+  { q:"ماذا يحدث عند فقدان الذرة لإلكترون؟", options:["تصبح متعادلة","تصبح أيونًا موجبًا","تصبح أيونًا سالبًا","تزداد كتلتها"], answer:"تصبح أيونًا موجبًا" },
+
+  { q:"عدد مستويات الطاقة الرئيسة في الذرة هو:", options:["3","5","7","9"], answer:"7" },
+  { q:"أول مستوى طاقة رئيسي يستطيع حمل:", options:["إلكترونين","4 إلكترونات","8 إلكترونات","18 إلكترونًا"], answer:"إلكترونين" },
+  { q:"الصيغة العامة لحساب عدد الإلكترونات في أي مستوى طاقة هي:", options:["2n²","n²","4n","2n"], answer:"2n²" },
+  { q:"المستوى الثالث يمكن أن يحتوي على:", options:["2 إلكترون","8 إلكترونات","18 إلكترون","32 إلكترون"], answer:"18 إلكترون" },
+  { q:"العالم الذي وضع معادلة تصف حركة الإلكترونات كموجات هو:", options:["بور","شرودنجر","دالتون","رذرفورد"], answer:"شرودنجر" },
+  { q:"النموذج الميكانيكي الكمي للذرة وصف الإلكترونات بأنها:", options:["جسيمات ثابتة","جسيمات وموجات في نفس الوقت","بروتونات","طاقة فقط"], answer:"جسيمات وموجات في نفس الوقت" },
+  { q:"أي من الجسيمات التالية كتلته أصغر؟", options:["البروتون","النيوترون","الإلكترون","النواة"], answer:"الإلكترون" },
+  { q:"الجسيمات الموجودة في النواة هي:", options:["البروتونات والنيوترونات","الإلكترونات فقط","البروتونات فقط","الإلكترونات والنيوترونات"], answer:"البروتونات والنيوترونات" },
+  { q:"وحدة الكتلة الذرية تعادل تقريبًا كتلة:", options:["إلكترون","نيوترون","بروتون","نواة"], answer:"نيوترون" },
+
+  { q:"إذا كان عدد البروتونات = عدد الإلكترونات، فإن الذرة تكون:", options:["موجبة","سالبة","متعادلة","مشحونة"], answer:"متعادلة" },
+  { q:"النظيرين يختلفان في:", options:["عدد البروتونات","عدد الإلكترونات","عدد النيوترونات","نوع العنصر"], answer:"عدد النيوترونات" },
+  { q:"مجموع البروتونات والنيوترونات في الذرة يسمى:", options:["العدد الذري","العدد الكتلي","رقم الطاقة","رقم المدار"], answer:"العدد الكتلي" },
+  { q:"ما الجسيمات التي تحدد النشاط الكيميائي للعنصر؟", options:["النيوترونات","إلكترونات التكافؤ","البروتونات","جميعها"], answer:"إلكترونات التكافؤ" },
+  { q:"أول من افترض أن الذرة غير قابلة للانقسام هو:", options:["بور","ديموقريطس","طومسون","شرودنجر"], answer:"ديموقريطس" },
+  { q:"جسيم يحمل الشحنة السالبة وكتلته صغيرة جدًا:", options:["بروتون","إلكترون","نيوترون","نواة"], answer:"إلكترون" },
+  { q:"الذرات التي تفقد أو تكتسب إلكترونات تسمى:", options:["أيونات","نظائر","مركبات","جسيمات ألفا"], answer:"أيونات" },
+  { q:"أي مما يلي له شحنة موجبة؟", options:["النواة","الإلكترون","المدار","السحابة"], answer:"النواة" },
+  { q:"إذا كان العنصر يحتوي على 17 بروتونًا، فإن عدده الذري هو:", options:["16","17","18","34"], answer:"17" },
+
+  { q:"أي مما يلي يُعد جسيمًا دون ذري؟", options:["الذرة","البروتون","العنصر","الجزيء"], answer:"البروتون" },
+  { q:"النواة تحتوي على:", options:["بروتونات فقط","نيوترونات فقط","بروتونات ونيوترونات","إلكترونات"], answer:"بروتونات ونيوترونات" },
+  { q:"كتلة الإلكترون تساوي تقريبًا:", options:["مثل البروتون","نصف البروتون","صغيرة جدًا","مثل النيوترون"], answer:"صغيرة جدًا" },
+  { q:"الذرة التي تفقد إلكترونًا تصبح:", options:["سالبة","موجبة","متعادلة","نظير"], answer:"موجبة" },
+  { q:"الإلكترونات تدور حول النواة بسبب:", options:["الجاذبية","القوة الكهربائية","الكتلة","العشوائية"], answer:"القوة الكهربائية" },
+  { q:"أكبر كتلة توجد في:", options:["الإلكترون","النواة","المدار الأخير","السحابة الإلكترونية"], answer:"النواة" },
+  { q:"رمز العنصر الذي يحتوي على 11 بروتون هو:", options:["Na","Cl","O","N"], answer:"Na" },
+  { q:"النموذج الذي وصف الإلكترونات كسحابة من الاحتمالات هو:", options:["بور","شرودنجر","رذرفورد","طومسون"], answer:"شرودنجر" },
+
+  { q:"تسمى المنطقة التي يوجد فيها احتمال كبير لوجود الإلكترون:", options:["المدار","السحابة الإلكترونية","النواة","المستوى الرئيسي"], answer:"السحابة الإلكترونية" },
+  { q:"عدد الإلكترونات في الذرة المتعادلة يساوي عدد:", options:["البروتونات","النيوترونات","النواة","الطاقة"], answer:"البروتونات" },
+  { q:"العالم الذي وضع أول نظرية ذرية علمية هو:", options:["بور","دالتون","طومسون","رذرفورد"], answer:"دالتون" },
+  { q:"جميع الذرات لعنصر معين لها نفس:", options:["عدد النيوترونات","عدد البروتونات","عدد الكتلة","عدد الطاقة"], answer:"عدد البروتونات" }
+];
+
+/* === حالة المستخدم وإجابات محفوظة === */
+const totalQuestions = questions.length;
+document.getElementById('totalQuestions').innerText = totalQuestions;
+let current = 0;
+let userAnswers = new Array(totalQuestions).fill(null);
+let perQuestionTimes = new Array(totalQuestions).fill(60); // ثواني لكل سؤال متاحة
+let answeredFlags = new Array(totalQuestions).fill(false);
+
+/* === عناصر الواجهة === */
+const qText = document.getElementById('qText');
+const optionsDiv = document.getElementById('options');
+const feedbackDiv = document.getElementById('feedback');
+const currentIndexSpan = document.getElementById('currentIndex');
+const qTimeSpan = document.getElementById('qTime');
+const globalTimeSpan = document.getElementById('globalTime');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const markBtn = document.getElementById('markBtn');
+const resultBox = document.getElementById('resultBox');
+
+/* === المؤقت الكلي (30 دقيقة) === */
+let totalSeconds = 30 * 60; // 30 دقيقة
+function formatTime(s){
+  const m = Math.floor(s/60).toString().padStart(2,'0');
+  const sec = (s%60).toString().padStart(2,'0');
+  return `${m}:${sec}`;
+}
+globalTimeSpan.innerText = formatTime(totalSeconds);
+let globalInterval = setInterval(()=>{
+  totalSeconds--;
+  if(totalSeconds < 0){
+    clearInterval(globalInterval);
+    submitAll();
+    return;
+  }
+  globalTimeSpan.innerText = formatTime(totalSeconds);
+},1000);
+
+/* === المؤقت لكل سؤال (يحتسب على السؤال الحالي) === */
+let perInterval = null;
+function startPerQuestionTimer(){
+  clearInterval(perInterval);
+  perInterval = setInterval(()=>{
+    perQuestionTimes[current]--;
+    qTimeSpan.innerText = formatTime(perQuestionTimes[current]);
+    if(perQuestionTimes[current] <= 0){
+      clearInterval(perInterval);
+      // إن لم يجب المستخدم، نعتبره لم يختار وننتقل مع إظهار رسالة
+      if(!answeredFlags[current]){
+        showFeedback(null); // بدون اختيار
+      }
+      // بعد 1 ثانية انتقل للسؤال التالي تلقائياً
+      setTimeout(()=> {
+        if(current < totalQuestions - 1) goToQuestion(current + 1);
+        else submitAll();
+      }, 800);
+    }
+  },1000);
+}
+
+/* === عرض السؤال الحالي === */
+function renderQuestion(idx){
+  current = idx;
+  currentIndexSpan.innerText = current + 1;
+  qText.innerText = `${current+1}. ${questions[current].q}`;
+  optionsDiv.innerHTML = '';
+  feedbackDiv.style.display = 'none';
+  feedbackDiv.innerHTML = '';
+  // عرض الخيارات
+  questions[current].options.forEach((opt, i) => {
+    const id = `opt_${current}_${i}`;
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="radio" name="r${current}" id="${id}" value="${opt}"> ${opt}`;
+    optionsDiv.appendChild(label);
+    // restore previous answer if موجود
+    const radio = label.querySelector('input');
+    radio.addEventListener('change', () => {
+      // حفظ الإجابة واظهار التعقيب فوراً
+      userAnswers[current] = radio.value;
+      answeredFlags[current] = true;
+      showFeedback(radio.value);
+    });
+    if(userAnswers[current] === opt){
+      radio.checked = true;
+    }
+  });
+  // عرض الوقت المتبقي للسؤال
+  qTimeSpan.innerText = formatTime(perQuestionTimes[current]);
+  // تفعيل/تعطيل أزرار
+  prevBtn.disabled = (current === 0);
+  nextBtn.disabled = (current === totalQuestions - 1);
+  // start per-question timer
+  startPerQuestionTimer();
+}
+
+/* === إظهار التغذية الراجعة عند الإجابة أو انتهاء الوقت === */
+function showFeedback(selectedValue){
+  feedbackDiv.style.display = 'block';
+  const correct = questions[current].answer;
+  if(selectedValue === null){
+    feedbackDiv.innerHTML = `<span class="wrong">⚠️ لم تختر إجابة. الإجابة الصحيحة: ${correct}</span>`;
+  } else if(selectedValue === correct){
+    // جمع الخيارات الخاطئة لعرضها
+    const wrongs = questions[current].options.filter(o => o !== correct).join('، ');
+    feedbackDiv.innerHTML = `<span class="correct">✅ إجابة صحيحة!</span><br>الإجابات الخاطئة: ${wrongs}`;
+  } else {
+    feedbackDiv.innerHTML = `<span class="wrong">❌ إجابة خاطئة!</span><br>الإجابة الصحيحة: ${correct}`;
+  }
+}
+
+/* === أزرار التنقل === */
+prevBtn.addEventListener('click', ()=>{
+  if(current > 0) goToQuestion(current - 1);
+});
+nextBtn.addEventListener('click', ()=>{
+  if(current < totalQuestions - 1) goToQuestion(current + 1);
+  else submitAll();
+});
+
+/* علامة / مسح الإجابة */
+markBtn.addEventListener('click', ()=>{
+  // إذا كان هناك إجابة محفوظة امسحها، وإخفاء التغذية الراجعة
+  if(userAnswers[current] !== null){
+    userAnswers[current] = null;
+    answeredFlags[current] = false;
+    // إلغاء تحديد الراديو
+    const checked = document.querySelector(`input[name="r${current}"]:checked`);
+    if(checked) checked.checked = false;
+    feedbackDiv.style.display = 'none';
+    feedbackDiv.innerHTML = '';
+  } else {
+    // علامة (لا يوجد وظيفة خاصة بخلاف التذكير) - هنا نضع تأكيد مرئي
+    feedbackDiv.style.display = 'block';
+    feedbackDiv.innerHTML = `<span style="color:#065f46;font-weight:800;">📌 يمكنك الآن اختيار إجابة لهذا السؤال</span>`;
+    setTimeout(()=>{ feedbackDiv.style.display = 'none'; feedbackDiv.innerHTML=''; },1500);
+  }
+});
+
+/* === الانتقال لسؤال محدد === */
+function goToQuestion(idx){
+  // حفظ حاله المؤقت الحالي (تم حفظه مسبقاً في perQuestionTimes)
+  // تغيير العرض
+  renderQuestion(idx);
+}
+
+/* === تسليم الاختبار وحساب النتيجة === */
+function submitAll(){
+  clearInterval(globalInterval);
+  clearInterval(perInterval);
+  // حساب النتيجة
+  let score = 0;
+  for(let i=0;i<totalQuestions;i++){
+    if(userAnswers[i] === questions[i].answer) score++;
+  }
+  // اظهار النتيجة النهائية وتفاصيل قصيرة
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = `📝 انتهى الوقت أو تم التسليم — نتيجتك: ${score} من ${totalQuestions} (${Math.round((score/totalQuestions)*100)}%)<br><br>
+  اضغط على "عرض التفاصيل" لعرض كل الأسئلة وإجاباتك.`;
+  // زر لعرض التفاصيل
+  const detailsBtn = document.createElement('button');
+  detailsBtn.style.marginTop = '10px';
+  detailsBtn.innerText = 'عرض التفاصيل';
+  detailsBtn.addEventListener('click', showFullReview);
+  resultBox.appendChild(detailsBtn);
+
+  // تعطيل عناصر التحكم
+  prevBtn.disabled = true;
+  nextBtn.disabled = true;
+  markBtn.disabled = true;
+  optionsDiv.querySelectorAll('input').forEach(i=> i.disabled = true);
+}
+
+/* === عرض مراجعة كاملة مع إجابة المستخدم والإجابة الصحيحة === */
+function showFullReview(){
+  let html = `<div style="text-align:right;direction:rtl;">`;
+  questions.forEach((qq, i) => {
+    const your = userAnswers[i] ? userAnswers[i] : "لم تُجب";
+    const ok = qq.answer;
+    const correctMark = (your === ok) ? "✅" : "❌";
+    html += `<div style="padding:10px;border-bottom:1px solid #eef2ff;">
+      <div style="font-weight:800;">${i+1}. ${qq.q}</div>
+      <div>إجابتك: <strong>${your}</strong> ${correctMark}</div>
+      ${ your === ok ? `<div style="color:#064e3b;">الإجابة صحيحة — الإجابات الخاطئة: ${qq.options.filter(o=>o!==ok).join('، ')}</div>` 
+        : `<div style="color:#7f1d1d;">الإجابة الصحيحة: <strong>${ok}</strong></div>` }
+    </div>`;
+  });
+  html += `</div>`;
+  resultBox.innerHTML = html;
+}
+
+/* === تهيئة البدء === */
+window.addEventListener('load', ()=>{
+  renderQuestion(0);
+});
+</script>
+</body>
+</html>
