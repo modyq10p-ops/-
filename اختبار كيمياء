@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>اختبار الكيمياء</title>
+<style>
+  body { font-family: "Tahoma", sans-serif; background: #f7f9fc; color: #222; margin: 20px; }
+  h1 { text-align: center; }
+  .question { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; background: white; }
+  button { background: #0078d7; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #005ea1; }
+  .feedback { margin-top: 10px; font-weight: bold; }
+  #timer { font-weight: bold; color: red; text-align: center; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<h1>🧪 اختبار الكيمياء</h1>
+<div id="timer">الوقت المتبقي: 30:00</div>
+<div id="quiz"></div>
+<button onclick="submitQuiz()">إنهاء الاختبار</button>
+<p id="result"></p>
+
+<script>
+const questions = [
+  { q: "من هو أول من قال إن المادة تتكون من جسيمات صغيرة سماها ذرات؟", options: ["دالتون", "طومسون", "رذرفورد", "ديموقريطس"], answer: "ديموقريطس" },
+  { q: "اكتشف الإلكترون العالم:", options: ["دالتون", "طومسون", "بور", "شرودنجر"], answer: "طومسون" },
+  { q: "اكتشف النواة العالم:", options: ["بور", "ديموقريطس", "رذرفورد", "دالتون"], answer: "رذرفورد" },
+  { q: "من مكونات الذرة:", options: ["إلكترونات فقط","بروتونات ونيوترونات وإلكترونات","بروتونات فقط","نيوترونات فقط"], answer: "بروتونات ونيوترونات وإلكترونات" },
+  { q: "الشحنة الكهربائية للبروتون هي:", options: ["سالبة","موجبة","متعادلة","غير معروفة"], answer: "موجبة" },
+  // يمكنك إضافة باقي الأسئلة بنفس الصيغة
+];
+
+let quizContainer = document.getElementById("quiz");
+questions.forEach((q, i) => {
+  let div = document.createElement("div");
+  div.className = "question";
+  div.innerHTML = <p>${i + 1}. ${q.q}</p> + q.options.map(o =>
+    <label><input type="radio" name="q${i}" value="${o}"> ${o}</label><br>
+  ).join("");
+  quizContainer.appendChild(div);
+});
+
+function submitQuiz() {
+  let score = 0;
+  document.querySelectorAll(".question").forEach((div, i) => {
+    const selected = div.querySelector("input:checked");
+    const feedback = document.createElement("div");
+    feedback.className = "feedback";
+    if (selected) {
+      if (selected.value === questions[i].answer) {
+        score++;
+        const wrongs = questions[i].options.filter(o => o !== questions[i].answer).join("، ");
+        feedback.innerHTML = ✅ إجابة صحيحة! الإجابات الخاطئة هي: ${wrongs};
+      } else {
+        feedback.innerHTML = ❌ إجابة خاطئة! الإجابة الصحيحة: ${questions[i].answer};
+      }
+    } else {
+      feedback.innerHTML = "⚠️ لم تختر إجابة!";
+    }
+    div.appendChild(feedback);
+  });
+  document.getElementById("result").innerHTML = نتيجتك: ${score} من ${questions.length};
+  clearInterval(timerInterval);
+}
+
+// ⏱️ المؤقت (30 دقيقة)
+let totalSeconds = 30 * 60;
+function updateTimer() {
+  let minutes = Math.floor(totalSeconds / 60);
+  let seconds = totalSeconds % 60;
+  document.getElementById("timer").innerText = الوقت المتبقي: ${minutes}:${seconds.toString().padStart(2, '0')};
+  if (totalSeconds <= 0) {
+    submitQuiz();
+  }
+  totalSeconds--;
+}
+let timerInterval = setInterval(updateTimer, 1000);
+</script>
+
+</body>
+</html>
